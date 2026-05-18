@@ -13,12 +13,13 @@ Route::get('/dashboard', function () {
 
 use App\Http\Controllers\ChatController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/chat/{room}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/chat/{room}', [ChatController::class, 'store'])->name('chat.store');
-    Route::get('/profile', function() { return 'Halaman Profil'; })->name('profile.edit');
-
+    Route::get('/chat/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chat/{id}', [ChatController::class, 'sendMessage'])->name('chat.send');
+    
+    Route::post('/chat/private/create', [ChatController::class, 'createPrivateChat'])->name('chat.private.create');
+    Route::post('/chat/group/create', [ChatController::class, 'createGroupChat'])->name('chat.group.create');
 });
 
 require __DIR__.'/auth.php';
