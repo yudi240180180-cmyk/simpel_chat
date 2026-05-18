@@ -22,7 +22,6 @@ class DatabaseSeeder extends Seeder
         User::factory()->create(['name' => 'Andi', 'email' => 'andi@gmail.com']);
         User::factory()->create(['name' => 'Rose', 'email' => 'rose@gmail.com']);
 
-        // 3. Membuat 100 akun massal acak agar grup chat langsung ramai
-        User::factory(100)->create();
+        
     }
 }
