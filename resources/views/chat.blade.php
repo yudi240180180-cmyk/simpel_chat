@@ -59,9 +59,38 @@
                     </div>
 
                     <div id="chat-box" class="flex-1 overflow-y-auto my-4 p-2 space-y-3 bg-gray-50 rounded">
+                        @php 
+                            $lastDate = null; 
+                        @endphp
+
                         @foreach($messages as $msg)
+                            @php
+                                // Mengambil format tanggal database (Contoh: 19 Mei 2026)
+                                $msgDate = $msg->created_at->isoFormat('D MMMM Y');
+                                
+                                if ($msg->created_at->isToday()) {
+                                    $dateLabel = 'Hari Ini';
+                                } elseif ($msg->created_at->isYesterday()) {
+                                    $dateLabel = 'Kemarin';
+                                } else {
+                                    $dateLabel = $msgDate;
+                                }
+                            @endphp
+
+                            @if($lastDate !== $msgDate)
+                                <div class="flex justify-center my-4 data-date-group="{{ $msgDate }}">
+                                    <span class="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full font-semibold shadow-sm">
+                                        {{ $dateLabel }}
+                                    </span>
+                                </div>
+                                @php $lastDate = $msgDate; @endphp
+                            @endif
+
                             <div id="msg-{{ $msg->id }}" class="flex flex-col {{ $msg->user_id == auth()->id() ? 'items-end' : 'items-start' }}">
-                                <span class="text-xs text-gray-500">{{ $msg->user->name }}</span>
+                                <div class="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
+                                    <span class="font-semibold">{{ $msg->user->name }}</span>
+                                    <span>• {{ $msg->created_at->format('H:i') }}</span>
+                                </div>
                                 <div class="p-2 rounded-lg max-w-xs {{ $msg->user_id == auth()->id() ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800' }}">
                                     {{ $msg->message }}
                                 </div>
@@ -124,7 +153,7 @@
                     buatBalonChat(e.message);
                 });
 
-            // 2. FITUR KIRIM CHAT VIA AXIOS
+            // FITUR KIRIM CHAT VIA AXIOS
             chatForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 const pesanTeks = btnInput.value;
@@ -139,14 +168,31 @@
             });
 
             function buatBalonChat(data) {
-                // SENSOR ANTI-DUPLIKAT: Jika ID balon chat ini sudah digambar di browser, batalkan!
+                // SENSOR ANTI-DUPLIKAT
                 if (data.id && document.getElementById(`msg-${data.id}`)) {
                     return;
                 }
 
                 const isMe = data.user_id == currentUserId;
-                const wrapper = document.createElement('div');
                 
+                // Mengatur format jam lokal saat ini secara real-time (HH:MM)
+                let jamKirim = "{{ date('H:i') }}";
+                if(data.created_at) {
+                    const dateObj = new Date(data.created_at);
+                    jamKirim = String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+                }
+
+                // Logika pembuat pembatas "Hari Ini" jika chatbox kosong/berganti hari secara real-time
+                const formatHariIni = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                if (!document.querySelector(`[data-date-group="${formatHariIni}"]`)) {
+                    const dateDivider = document.createElement('div');
+                    dateDivider.className = "flex justify-center my-4";
+                    dateDivider.setAttribute('data-date-group', formatHariIni);
+                    dateDivider.innerHTML = `<span class="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full font-semibold shadow-sm">Hari Ini</span>`;
+                    chatBox.appendChild(dateDivider);
+                }
+
+                const wrapper = document.createElement('div');
                 if (data.id) {
                     wrapper.id = `msg-${data.id}`;
                 }
@@ -155,7 +201,10 @@
                 const namaPengirim = data.user ? data.user.name : "{{ auth()->user()->name }}";
 
                 wrapper.innerHTML = `
-                    <span class="text-xs text-gray-500">${namaPengirim}</span>
+                    <div class="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
+                        <span class="font-semibold">${namaPengirim}</span>
+                        <span>• ${jamKirim}</span>
+                    </div>
                     <div class="p-2 rounded-lg max-w-xs ${isMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}">
                         ${data.message}
                     </div>
